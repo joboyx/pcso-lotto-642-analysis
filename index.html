@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lotto 6/42 — consecutive numbers &amp; winners</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #181818;
+      --surface: #1e1e1e;
+      --surface2: #252526;
+      --text: #cccccc;
+      --text-bright: #e8e8e8;
+      --muted: #8b8b8b;
+      --accent: #3794ff;
+      --ok: #89d185;
+      --warn: #cca700;
+      --danger: #f48771;
+      --border: #3c3c3c;
+      --pill-bg: #2a2a2a;
+      --callout-bg: #252526;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    p { margin: 0; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .semibold { font-weight: 600; color: var(--text-bright); }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+    .stack-sm { display: flex; flex-direction: column; gap: 8px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (min-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+      .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .divider {
+      height: 1px;
+      background: var(--border);
+      border: 0;
+      margin: 0;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .pill.info { color: var(--accent); border-color: #2a5a8a; }
+    .pill.success { color: var(--ok); border-color: #3d6b3d; }
+    .pill.warning { color: var(--warn); border-color: #6b5a1a; }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 12px;
+    }
+    .stat .v {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat .v.warn { color: var(--warn); }
+    .stat .l {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .card-h {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: none;
+      background: var(--surface2);
+    }
+    .card-b { padding: 14px; }
+    .callout {
+      background: var(--callout-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .callout.success { border-left-color: var(--ok); }
+    .callout.warning { border-left-color: var(--warn); }
+    .callout.danger { border-left-color: var(--danger); }
+    .callout .title {
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .chart-box { position: relative; width: 100%; }
+    .banner {
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    footer.method {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    code { font-family: var(--mono); font-size: 0.9em; color: #c8c8c8; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="banner">
+      PCSO Lotto 6/42 analysis · 919 unique draws (Aug 2020 – Jul 2026) ·
+      findings only; not betting advice.
+    </div>
+
+    <div class="stack-sm">
+      <h1>Lotto 6/42 — consecutive numbers &amp; winners</h1>
+      <p class="muted">
+        919 unique draws · Aug 8, 2020 → Jul 23, 2026 · PCSO Lotto 6/42 only ·
+        source: lotto results sheet (2 duplicate rows removed)
+      </p>
+      <div class="row">
+        <span class="pill info">Finding focus: sequential number pairs in draws</span>
+        <span class="pill success">Sequential pairs are common in all draws — not winner-specific</span>
+        <span class="pill warning">Stronger signal: birthday-range bias</span>
+      </div>
+    </div>
+
+    <div class="grid-4">
+      <div class="stat"><div class="v">58.22%</div><div class="l">535/919 draws have ≥1 consec (theory 55.68%)</div></div>
+      <div class="stat"><div class="v">55.68%</div><div class="l">Exact theory — share of all 6/42 combos</div></div>
+      <div class="stat"><div class="v">14.5%</div><div class="l">133 draws paid a jackpot winner</div></div>
+      <div class="stat"><div class="v">54.9%</div><div class="l">Consec on winning draws (vs 58.8% no-win)</div></div>
+    </div>
+
+    <div class="callout">
+      <div class="title">Definition &amp; headline finding</div>
+      Consecutive means neighbors on the number line (|a−b|=1), regardless of draw
+      order. Example: 23, 3, 34, 17, 2, 39 → sorted 2, 3, … → 2 and 3 count.
+      About 55–58% of draws have at least one such pair — higher than intuition
+      suggests, because most 6/42 combinations leave a gap of 1 somewhere.
+      Jackpot-winning draws are not enriched for this (54.9% vs 58.8% with no winner).
+    </div>
+
+    <hr class="divider" />
+
+    <h2>1. Why consecutive feels rare but isn’t</h2>
+    <div class="grid-2">
+      <div class="stack">
+        <p>Pick 6 distinct numbers from 1–42. After sorting, ask: does any adjacent pair differ by exactly 1?</p>
+        <p class="semibold">Exact math</p>
+        <p>
+          Total combos C(42,6) = 5,245,786. Combos with no consecutive numbers
+          = C(37,6) = 2,324,784 (map gaps). So <span class="semibold">55.68%</span>
+          of all tickets already contain ≥1 consecutive pair — before looking
+          at any real draw.
+        </p>
+        <p class="muted">
+          Intuition trap: there are many more non-adjacent number pairs in the
+          pool, but a 6-number ticket creates 5 sorted gaps. It is hard for
+          all five gaps to stay ≥2 across 1…42.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-h">Pair-count distribution (obs vs theory)</div>
+        <div class="card-b">
+          <div class="chart-box" style="height:220px"><canvas id="chartPairs"></canvas></div>
+          <p class="muted small" style="margin-top:8px">
+            Definition: count of sorted adjacent gaps equal to 1 (a triple
+            like 7-8-9 = 2 pairs). z ≈ 1.6 vs theory for “≥1 pair” — not
+            significant (p ≈ 0.11).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3>Definition check (order does not matter)</h3>
+      <table>
+        <thead><tr><th>Draw order</th><th>After sort</th><th>Consecutive pairs?</th></tr></thead>
+        <tbody>
+          <tr><td>23-3-34-17-2-39</td><td>2,3,17,23,34,39</td><td>2-3 — Yes</td></tr>
+          <tr><td>6-7-22-27-32-40</td><td>6,7,22,27,32,40</td><td>6-7 — Yes</td></tr>
+          <tr><td>15-17-25-37-38-39</td><td>15,17,25,37,38,39</td><td>37-38, 38-39 — Yes (run)</td></tr>
+          <tr><td>4-7-10-14-22-29</td><td>4,7,10,14,22,29</td><td>none — No</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>2. Does consecutive predict a jackpot winner?</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h">Winner × consecutive (2×2)</div>
+        <div class="card-b">
+          <table>
+            <thead><tr><th></th><th>Has consec</th><th>No consec</th><th>Row %</th></tr></thead>
+            <tbody>
+              <tr><td>Jackpot won</td><td>73</td><td>60</td><td>54.9% consec</td></tr>
+              <tr><td>No winner</td><td>462</td><td>324</td><td>58.8% consec</td></tr>
+              <tr><td>Winner rate</td><td>13.6%</td><td>15.6%</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <p class="muted small" style="margin-top:8px">
+            χ² ≈ 0.75 — no association. Consecutive tickets are not “luckier”
+            at the jackpot tier.
+          </p>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="callout success">
+          <div class="title">Finding: sequential pairs ≠ jackpot predictor</div>
+          Roughly 55% of jackpot-winning draws contain a consecutive pair — but
+          ~56% of all fair 6/42 draws do. Winning draws are not special on this
+          metric; no-winner draws show consecutive pairs slightly more often.
+        </div>
+        <p>
+          Practical takeaway: picking consecutive numbers does not improve or
+          hurt jackpot odds of the machine. It may affect how many people share
+          a jackpot if consecutive picks are popular — this dataset only has
+          winner counts, not ticket compositions.
+        </p>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>3. Stronger insight: birthday-range bias</h2>
+    <div class="callout warning">
+      <div class="title">This is the real pattern</div>
+      When all 6 drawn numbers are ≤31 (calendar/birthday range), the draw
+      produced a jackpot winner 40.8% of the time — vs 14.5% overall. Draws
+      with several numbers ≥32 win far less often. Machine frequencies are
+      still uniform; players cluster on 1–31.
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h">Jackpot hit rate by how many balls are ≤31</div>
+        <div class="card-b">
+          <div class="chart-box" style="height:220px"><canvas id="chartBirthday"></canvas></div>
+          <p class="muted small" style="margin-top:8px">
+            X-axis: count of drawn balls in 1–31. Sample sizes: 29 / 135 / 301 /
+            307 / 142. Overall win rate reference ≈ 14.5%.
+          </p>
+        </div>
+      </div>
+      <div class="stack">
+        <h3>Number-sum vs winners</h3>
+        <div class="grid-2" style="gap:8px">
+          <div class="stat"><div class="v warn">116</div><div class="l">Mean sum — winning draws</div></div>
+          <div class="stat"><div class="v" style="color:var(--text-bright)">132</div><div class="l">Mean sum — no winner</div></div>
+        </div>
+        <p>
+          t ≈ −5.6 — highly significant. Low-sum draws (more small numbers) get
+          hit much more often because popular human picks crowd that region.
+        </p>
+        <table>
+          <thead><tr><th>Sum tertile</th><th>Draws</th><th>Win rate</th><th>Mean sum</th></tr></thead>
+          <tbody>
+            <tr><td>Low (≤116)</td><td>307</td><td>23.1%</td><td>98.5</td></tr>
+            <tr><td>Mid</td><td>315</td><td>11.7%</td><td>129.7</td></tr>
+            <tr><td>High (&gt;142)</td><td>297</td><td>8.4%</td><td>161.0</td></tr>
+          </tbody>
+        </table>
+        <p class="muted small">Holds inside every jackpot-size quartile — not just a roll-up artifact.</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3>Multi-winner draws (14) — almost all “human-looking”</h3>
+      <table>
+        <thead><tr><th>Date</th><th>Winners</th><th>Sum</th><th>≤31 count</th><th>Numbers</th><th>Consec?</th></tr></thead>
+        <tbody>
+          <tr><td>2022-01-06</td><td>4</td><td>76</td><td>6/6</td><td>1-7-9-12-23-24</td><td>Yes</td></tr>
+          <tr><td>2022-05-31</td><td>3</td><td>104</td><td>6/6</td><td>2-7-20-21-25-29</td><td>Yes</td></tr>
+          <tr><td>2024-01-02</td><td>3</td><td>86</td><td>6/6</td><td>4-7-10-14-22-29</td><td>No</td></tr>
+          <tr><td>2022-11-08</td><td>2</td><td>75</td><td>6/6</td><td>5-6-7-9-19-29</td><td>Yes (run)</td></tr>
+          <tr><td>2026-01-10</td><td>2</td><td>67</td><td>6/6</td><td>1-4-8-10-20-24</td><td>No</td></tr>
+          <tr><td>2021-05-08</td><td>2</td><td>92</td><td>5/6</td><td>3-6-8-15-24-36</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small">
+        Multi-winner mean sum = 102 (vs 129 overall); mean balls ≤31 = 5.3 / 6.
+        Shared jackpots cluster on birthday-heavy tickets.
+      </p>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>4. Trends over time</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h">Quarterly % of draws with ≥1 consecutive pair</div>
+        <div class="card-b">
+          <div class="chart-box" style="height:240px"><canvas id="chartConsecQ"></canvas></div>
+          <p class="muted small" style="margin-top:8px">Source: lotto results sheet · quarterly · ~37–40 draws each</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">Quarterly jackpot hit rate</div>
+        <div class="card-b">
+          <div class="chart-box" style="height:240px"><canvas id="chartWinQ"></canvas></div>
+          <p class="muted small" style="margin-top:8px">
+            Spikes (e.g. 2024-Q1 29.7%) track big rollover seasons + ticket
+            volume, not consecutive-number rates.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="stat"><div class="v" style="color:var(--text-bright)">32 draws</div><div class="l">Longest no-jackpot drought (Feb→May 2021)</div></div>
+      <div class="stat"><div class="v" style="color:var(--text-bright)">₱108.1M</div><div class="l">Max jackpot — 2024-01-02 · 3 winners · no consec</div></div>
+      <div class="stat"><div class="v" style="color:var(--text-bright)">₱30.7M</div><div class="l">2025 mean jackpot (highest yearly avg)</div></div>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>5. Anomalies &amp; statistical improbability</h2>
+    <div class="grid-2">
+      <div class="stack">
+        <h3>Looks fair (machine side)</h3>
+        <table>
+          <thead><tr><th>Test</th><th>Result</th><th>Read</th></tr></thead>
+          <tbody>
+            <tr><td>Ball frequency χ² (df=41)</td><td>37.9</td><td>Consistent with uniform</td></tr>
+            <tr><td>Odd/even splits</td><td>matches theory</td><td>3/3 most common as expected</td></tr>
+            <tr><td>Mean number sum</td><td>129.4 vs 129.0 theory</td><td>Dead on</td></tr>
+            <tr><td>Consec ≥1 pair</td><td>58.2% vs 55.7%</td><td>z≈1.6 · not significant</td></tr>
+            <tr><td>Consecutive-pair slot χ²</td><td>53.3 (df=40)</td><td>Borderline · not extreme</td></tr>
+          </tbody>
+        </table>
+        <p>Hottest balls: 18 &amp; 41 (156×, z≈2.3). Coldest: 1 (111×), 30 (112×). Expected per ball ≈ 131.4. Nothing demands a biased drum.</p>
+      </div>
+      <div class="stack">
+        <h3>Notable, but not smoking guns</h3>
+        <table>
+          <thead><tr><th>Finding</th><th>Size</th><th>Context</th></tr></thead>
+          <tbody>
+            <tr><td>2021-Q2 consec rate</td><td>35.1% (z≈−2.5)</td><td>1 of ~24 quarters · multiple testing</td></tr>
+            <tr><td>2026-Q2 consec rate</td><td>78.4% (z≈+2.8)</td><td>Same caveat · watch next quarters</td></tr>
+            <tr><td>3+ consecutive runs</td><td>60 draws</td><td>Expect ~55 · OK</td></tr>
+            <tr><td>Run of 4</td><td>5 draws</td><td>Expect ~4.3 · OK</td></tr>
+            <tr><td>Sheet same-day dupes</td><td>2 dates</td><td>Not true re-draws · see §6</td></tr>
+            <tr><td>True combo repeats</td><td>0</td><td>Expected ~0.08 in 919 draws</td></tr>
+            <tr><td>Winner ↔ low sum</td><td>t≈−5.6</td><td>Player behavior, not RNG</td></tr>
+          </tbody>
+        </table>
+        <div class="callout danger">
+          <div class="title">Not an RNG red flag</div>
+          The striking improbability is social: low / birthday-heavy combinations
+          are over-played, so those draws pay out jackpots more often and split
+          more often. That is common in lotteries worldwide — not evidence the
+          draw is fixed.
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3>Number frequency (1–42)</h3>
+      <div class="chart-box" style="height:200px"><canvas id="chartFreq"></canvas></div>
+      <p class="muted small">Source: 919 unique Lotto 6/42 draws · Aug 2020 – Jul 2026</p>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>6. Have any winning combos won again?</h2>
+    <div class="callout">
+      <div class="title">Finding: have exact winning combinations repeated?</div>
+      Across 919 unique draw dates: zero exact 6-number combinations repeated on a
+      later date. The two “duplicates” in the sheet are same-day copy-paste rows
+      (2021-10-14 and 2022-09-17), not real re-draws.
+    </div>
+    <div class="grid-2">
+      <div class="stack">
+        <table>
+          <thead><tr><th>Check</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Same combo on different dates</td><td>0</td></tr>
+            <tr><td>Same-day sheet dupes (dropped)</td><td>2</td></tr>
+            <tr><td>Unique combos in sample</td><td>919</td></tr>
+            <tr><td>Total possible 6/42 tickets</td><td>5,245,786</td></tr>
+            <tr><td>Expected true repeats in 919 draws</td><td>~0.08</td></tr>
+            <tr><td>P(≥1 true repeat by chance)</td><td>~7.7%</td></tr>
+          </tbody>
+        </table>
+        <p class="muted small">
+          So “wala pang ulit” is normal — not proof that past winners can’t come
+          back. With this sample size you’d usually see zero repeats.
+        </p>
+      </div>
+      <div class="stack">
+        <div class="callout warning">
+          <div class="title">Avoiding past winners is almost useless</div>
+          Skipping all 919 past combos removes only 919 / 5,245,786 ≈ 0.0175% of
+          the ticket space. Each new draw is independent: a past winner still has
+          probability 1/5,245,786 — same as any other unused combo. They are not
+          “instant losses.”
+        </div>
+        <p>
+          Excluding historical winners feels like a large filter, but it barely
+          shrinks the pool. Jackpot odds stay ~1 in 5.25 million either way.
+        </p>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>Bottom line</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-h">Consecutive pairs <span class="pill success">Settled</span></div>
+        <div class="card-b">Expected ~56% of the time. Observed 58%. Common as a base rate — not a winner filter.</div>
+      </div>
+      <div class="card">
+        <div class="card-h">Birthday bias <span class="pill warning">Actionable</span></div>
+        <div class="card-b">All-≤31 draws hit jackpot ~41% of the time. Want less sharing? Lean into 32–42 more than the crowd does.</div>
+      </div>
+      <div class="card">
+        <div class="card-h">Anomalies <span class="pill info">Fair draw</span></div>
+        <div class="card-b">No durable machine bias. Quarterly consec spikes / droughts look like normal variance. Clean 2 sheet dupes.</div>
+      </div>
+      <div class="card">
+        <div class="card-h">Past winners <span class="pill warning">Strategy myth</span></div>
+        <div class="card-b">No combo repeated across dates — expected. Avoiding them removes ~0.02% of tickets; they are not instant losses.</div>
+      </div>
+    </div>
+
+    <footer class="method">
+      Method: consecutive = sorted adjacent difference of 1. Theory from exact
+      enumeration of C(42,6). Winners = jackpot WINNERS column &gt; 0. Not
+      advice to buy tickets — EV stays negative either way.
+      · Static report page for GitHub Pages
+    </footer>
+  </div>
+
+  <script>
+    const grid = 'rgba(255,255,255,0.06)';
+    const tick = '#8b8b8b';
+    Chart.defaults.color = tick;
+    Chart.defaults.borderColor = grid;
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+    const commonOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { boxWidth: 12, color: '#cccccc' } }
+      }
+    };
+
+    new Chart(document.getElementById('chartPairs'), {
+      type: 'bar',
+      data: {
+        labels: ['0 pairs', '1 pair', '2 pairs', '3 pairs'],
+        datasets: [
+          { label: 'Observed %', data: [41.78, 43.74, 11.97, 2.61], backgroundColor: '#3794ff' },
+          { label: 'Theory %', data: [44.32, 41.55, 12.59, 1.48], backgroundColor: '#6e6e6e' }
+        ]
+      },
+      options: {
+        ...commonOpts,
+        scales: {
+          y: { min: 0, max: 50, ticks: { callback: v => v + '%' }, grid: { color: grid } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('chartBirthday'), {
+      type: 'bar',
+      data: {
+        labels: ['2', '3', '4', '5', '6'],
+        datasets: [{
+          label: 'Win rate %',
+          data: [17.2, 5.2, 9.6, 11.1, 40.8],
+          backgroundColor: '#cca700'
+        }]
+      },
+      options: {
+        ...commonOpts,
+        plugins: {
+          ...commonOpts.plugins,
+          legend: { display: false },
+          datalabels: undefined
+        },
+        scales: {
+          y: { min: 0, max: 50, ticks: { callback: v => v + '%' }, grid: { color: grid } },
+          x: { title: { display: true, text: 'Balls ≤31', color: tick }, grid: { display: false } }
+        }
+      }
+    });
+
+    const qLabels = ['20Q3','20Q4','21Q1','21Q2','21Q3','21Q4','22Q1','22Q2','22Q3','22Q4','23Q1','23Q2','23Q3','23Q4','24Q1','24Q2','24Q3','24Q4','25Q1','25Q2','25Q3','25Q4','26Q1','26Q2'];
+
+    new Chart(document.getElementById('chartConsecQ'), {
+      type: 'line',
+      data: {
+        labels: qLabels,
+        datasets: [{
+          label: 'Consec %',
+          data: [56.5,52.5,57.9,35.1,55.0,59.0,63.2,54.1,62.5,62.5,52.6,59.5,62.5,66.7,54.1,61.5,56.4,62.5,60.5,59.5,45.0,56.4,61.5,78.4],
+          borderColor: '#3794ff',
+          backgroundColor: 'rgba(55,148,255,0.12)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        ...commonOpts,
+        plugins: {
+          ...commonOpts.plugins,
+          annotation: undefined,
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            min: 30, max: 85,
+            ticks: { callback: v => v + '%' },
+            grid: { color: grid },
+            afterDataLimits(scale) {}
+          },
+          x: { ticks: { maxRotation: 90, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } }
+        }
+      },
+      plugins: [{
+        id: 'refLineConsec',
+        afterDraw(chart) {
+          const y = chart.scales.y.getPixelForValue(55.68);
+          const { left, right } = chart.chartArea;
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.strokeStyle = '#8b8b8b';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#8b8b8b';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('Theory 55.7%', right - 78, y - 4);
+          ctx.restore();
+        }
+      }]
+    });
+
+    new Chart(document.getElementById('chartWinQ'), {
+      type: 'line',
+      data: {
+        labels: qLabels,
+        datasets: [{
+          label: 'Win %',
+          data: [8.7,10.0,13.2,10.8,10.0,23.1,13.2,13.5,15.0,15.0,13.2,8.1,20.0,17.9,29.7,7.7,17.9,17.5,10.5,13.5,7.5,10.3,25.6,10.8],
+          borderColor: '#89d185',
+          backgroundColor: 'rgba(137,209,133,0.12)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        ...commonOpts,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 35, ticks: { callback: v => v + '%' }, grid: { color: grid } },
+          x: { ticks: { maxRotation: 90, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } }
+        }
+      },
+      plugins: [{
+        id: 'refLineWin',
+        afterDraw(chart) {
+          const y = chart.scales.y.getPixelForValue(14.5);
+          const { left, right } = chart.chartArea;
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.strokeStyle = '#8b8b8b';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#8b8b8b';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('Overall 14.5%', right - 82, y - 4);
+          ctx.restore();
+        }
+      }]
+    });
+
+    new Chart(document.getElementById('chartFreq'), {
+      type: 'bar',
+      data: {
+        labels: Array.from({length: 42}, (_, i) => String(i + 1)),
+        datasets: [{
+          label: 'Times drawn',
+          data: [111,127,147,134,134,121,129,125,135,131,118,144,133,130,129,130,126,156,138,126,141,140,137,135,143,119,132,118,135,112,132,118,150,119,141,148,129,116,131,122,156,128],
+          backgroundColor: '#3794ff'
+        }]
+      },
+      options: {
+        ...commonOpts,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: grid } },
+          x: { ticks: { maxTicksLimit: 21, autoSkip: true }, grid: { display: false } }
+        }
+      },
+      plugins: [{
+        id: 'refLineFreq',
+        afterDraw(chart) {
+          const y = chart.scales.y.getPixelForValue(131.4);
+          const { left, right } = chart.chartArea;
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.strokeStyle = '#8b8b8b';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#8b8b8b';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('Expected 131.4', right - 90, y - 4);
+          ctx.restore();
+        }
+      }]
+    });
+  </script>
+</body>
+</html>
