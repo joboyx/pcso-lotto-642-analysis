@@ -1,4 +1,8 @@
-# PCSO Lotto 6/42 analysis
+<p align="center">
+  <img src="docs/images/icon.svg" alt="PCSO Lotto 6/42 analysis icon: a yellow lotto ball with a white window that shows the number 42" width="48">
+</p>
+
+<h1 align="center">PCSO Lotto 6/42 analysis</h1>
 
 Statistical findings from **919 unique** PCSO Lotto 6/42 draws (Aug 2020 – Jul 2026).
 
