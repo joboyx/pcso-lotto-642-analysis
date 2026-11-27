@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<title>PCSO Lotto 6/42 analysis</title>
+<defs>
+<radialGradient id="r3l-ball" cx="0.36" cy="0.3" r="0.78"><stop offset="0" stop-color="#e8c62a"/><stop offset="0.55" stop-color="#cca700"/><stop offset="1" stop-color="#977b00"/></radialGradient>
+</defs>
+<!-- The ball, in the page's yellow, lit from the top left. -->
+<circle cx="64" cy="64" r="58" fill="url(#r3l-ball)"/>
+<ellipse cx="38" cy="27" rx="13" ry="7" transform="rotate(-32 38 27)" fill="#ffffff" opacity="0.5"/>
+<!-- The number window and the game's range, 42, in block digits. -->
+<circle cx="64" cy="64" r="35" fill="#ffffff"/>
+<path d="M41 46H47V61H55V46H61V82H55V67H41ZM67 46H87V67H73V76H87V82H67V61H81V52H67Z" fill="#1e1e1e"/>
+</svg>
